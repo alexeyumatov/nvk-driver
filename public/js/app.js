@@ -488,10 +488,10 @@ async function loadUserBookings() {
                         ${booking.location_lat && booking.location_lon ? `
                             <p style="margin-top: 10px;">
                                 <strong>📍 Геолокация водителя:</strong><br>
-                                <a href="https://www.google.com/maps?q=${booking.location_lat},${booking.location_lon}" 
+                                <a href="https://yandex.ru/maps/?pt=${booking.location_lon},${booking.location_lat}&z=16&l=map" 
                                    target="_blank" 
                                    style="color: var(--neon-cyan); text-decoration: underline;">
-                                    Открыть на карте
+                                    Открыть на Яндекс.Картах
                                 </a>
                             </p>
                         ` : ''}
