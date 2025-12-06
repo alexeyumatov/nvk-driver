@@ -183,7 +183,7 @@ app.post('/api/notify', async (req, res) => {
 Маршрут: ${ride.route === 'nvk-guk' ? 'НВК → ГУК' : 'ГУК → НВК'}
 Время: ${ride.departure_time}
 
-Свяжитесь с пассажиром для уточнения деталей.
+Вы также можете связаться с пассажиром для уточнения деталей.
         `.trim();
 
         await bot.sendMessage(driver_telegram_id, message);
@@ -197,41 +197,213 @@ app.post('/api/notify', async (req, res) => {
 
 // ============= TELEGRAM BOT HANDLERS =============
 
+// Установка меню команд бота
+bot.setMyCommands([
+    { command: 'start', description: '🚀 Запустить приложение' },
+    { command: 'help', description: '📖 Помощь по использованию' },
+    { command: 'myrides', description: '🚗 Мои поездки (водитель)' },
+    { command: 'mybookings', description: '🎫 Мои бронирования (пассажир)' },
+    { command: 'about', description: 'ℹ️ О сервисе' }
+]);
+
 // Команда /start
 bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
+    const firstName = msg.from.first_name || 'друг';
     const webAppUrl = `${process.env.APP_URL}`;
     
     bot.sendMessage(chatId, 
-        '🚗 Добро пожаловать в NVK-Driver!\n\n' +
-        'Студенческий трансфер НВК - удобный способ добраться на пары.',
+        `👋 Привет, ${firstName}!\n\n` +
+        '🚗 *NVK-Driver* - твой студенческий трансфер!\n\n' +
+        '🎯 Что умеет бот:\n' +
+        '• Найти попутчиков для поездки\n' +
+        '• Создать свою поездку\n' +
+        '• Забронировать место у водителя\n' +
+        '• Отслеживать свои поездки\n\n' +
+        '👇 Нажми кнопку ниже, чтобы начать:',
         {
+            parse_mode: 'Markdown',
             reply_markup: {
-                inline_keyboard: [[
-                    { text: '🚀 Открыть приложение', web_app: { url: webAppUrl } }
-                ]]
+                keyboard: [
+                    [{ text: '🚀 Открыть приложение', web_app: { url: webAppUrl } }],
+                    [{ text: '📖 Помощь' }, { text: 'ℹ️ О сервисе' }]
+                ],
+                resize_keyboard: true,
+                one_time_keyboard: false
             }
         }
     );
 });
 
-// Команда /help
+// Команда /help и текстовая кнопка "📖 Помощь"
 bot.onText(/\/help/, (msg) => {
-    const chatId = msg.chat.id;
-    bot.sendMessage(chatId,
-        '📖 Помощь по использованию NVK-Driver:\n\n' +
-        '👤 Для пассажиров:\n' +
-        '- Выберите роль "Пассажир"\n' +
-        '- Просмотрите доступные поездки\n' +
-        '- Нажмите на поездку для деталей\n' +
-        '- Забронируйте место\n\n' +
-        '🚗 Для водителей:\n' +
-        '- Выберите роль "Водитель"\n' +
-        '- Заполните форму создания поездки\n' +
-        '- Управляйте своими поездками\n\n' +
-        '💡 По вопросам пишите @your_support'
-    );
+    sendHelpMessage(msg.chat.id);
 });
+
+bot.on('message', (msg) => {
+    if (msg.text === '📖 Помощь') {
+        sendHelpMessage(msg.chat.id);
+    } else if (msg.text === 'ℹ️ О сервисе') {
+        sendAboutMessage(msg.chat.id);
+    }
+});
+
+function sendHelpMessage(chatId) {
+    bot.sendMessage(chatId,
+        '📖 *Инструкция по использованию*\n\n' +
+        '👤 *Для пассажиров:*\n' +
+        '1️⃣ Откройте приложение\n' +
+        '2️⃣ Выберите "Я пассажир"\n' +
+        '3️⃣ Просмотрите доступные поездки\n' +
+        '4️⃣ Выберите подходящую и забронируйте место\n' +
+        '5️⃣ Свяжитесь с водителем через Telegram\n\n' +
+        '🚗 *Для водителей:*\n' +
+        '1️⃣ Откройте приложение\n' +
+        '2️⃣ Выберите "Я водитель"\n' +
+        '3️⃣ Заполните форму поездки (маршрут, время, цена)\n' +
+        '4️⃣ Отслеживайте заявки от пассажиров\n' +
+        '5️⃣ Завершите поездку после выполнения\n\n' +
+        '💡 *Полезные команды:*\n' +
+        '/start - Запустить бота\n' +
+        '/help - Показать эту справку\n' +
+        '/myrides - Мои поездки (водитель)\n' +
+        '/mybookings - Мои бронирования\n' +
+        '/about - О сервисе',
+        { parse_mode: 'Markdown' }
+    );
+}
+
+// Команда /about и текстовая кнопка "ℹ️ О сервисе"
+bot.onText(/\/about/, (msg) => {
+    sendAboutMessage(msg.chat.id);
+});
+
+function sendAboutMessage(chatId) {
+    bot.sendMessage(chatId,
+        'ℹ️ *О сервисе NVK-Driver*\n\n' +
+        '🎓 Студенческий трансфер для жителей общежития НВК\n\n' +
+        '🚗 *Что мы предлагаем:*\n' +
+        '• Быстрый поиск попутчиков\n' +
+        '• Экономия на такси\n' +
+        '• Безопасные поездки с однокурсниками\n' +
+        '• Удобное бронирование через Telegram\n\n' +
+        '📍 *Популярные маршруты:*\n' +
+        '• Общежитие НВК ↔ ГУК\n' +
+        '• Общежитие НВК ↔ Учебные корпуса\n\n' +
+        '👥 *Команда проекта:*\n' +
+        '• Разработка: @DickUpRio\n' +
+        '• Поддержка: @nvk_driver_bot\n\n' +
+        '💬 По всем вопросам: @DickUpRio',
+        { parse_mode: 'Markdown' }
+    );
+}
+
+// Команда /myrides - показать поездки водителя
+bot.onText(/\/myrides/, async (msg) => {
+    const chatId = msg.chat.id;
+    const userId = msg.from.id;
+    
+    try {
+        const rides = db.getRidesByDriver(userId);
+        
+        if (rides.length === 0) {
+            bot.sendMessage(chatId, 
+                '🚗 У вас пока нет активных поездок.\n\n' +
+                'Откройте приложение и создайте свою первую поездку!',
+                {
+                    reply_markup: {
+                        inline_keyboard: [[
+                            { text: '🚀 Открыть приложение', web_app: { url: process.env.APP_URL } }
+                        ]]
+                    }
+                }
+            );
+        } else {
+            let message = '🚗 *Ваши активные поездки:*\n\n';
+            
+            rides.forEach((ride, index) => {
+                message += `${index + 1}. *${ride.route}*\n`;
+                message += `   📅 ${ride.departure_date ? formatDate(ride.departure_date) + ', ' : ''}${ride.departure_time}\n`;
+                message += `   👥 Мест: ${ride.available_seats}/${ride.total_seats}\n`;
+                message += `   💰 ${ride.price} ₽\n`;
+                message += `   📋 Бронирований: ${ride.bookings_count || 0}\n\n`;
+            });
+            
+            message += 'Управляйте поездками через приложение 👇';
+            
+            bot.sendMessage(chatId, message, {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: [[
+                        { text: '🚀 Открыть приложение', web_app: { url: process.env.APP_URL } }
+                    ]]
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Error getting driver rides:', error);
+        bot.sendMessage(chatId, '❌ Ошибка при загрузке поездок. Попробуйте позже.');
+    }
+});
+
+// Команда /mybookings - показать бронирования пассажира
+bot.onText(/\/mybookings/, async (msg) => {
+    const chatId = msg.chat.id;
+    const userId = msg.from.id;
+    
+    try {
+        const bookings = db.getBookingsByUser(userId);
+        
+        if (bookings.length === 0) {
+            bot.sendMessage(chatId, 
+                '🎫 У вас пока нет забронированных поездок.\n\n' +
+                'Откройте приложение и найдите попутчиков!',
+                {
+                    reply_markup: {
+                        inline_keyboard: [[
+                            { text: '🚀 Открыть приложение', web_app: { url: process.env.APP_URL } }
+                        ]]
+                    }
+                }
+            );
+        } else {
+            let message = '🎫 *Ваши бронирования:*\n\n';
+            
+            bookings.forEach((booking, index) => {
+                message += `${index + 1}. *${booking.ride_route}*\n`;
+                message += `   📅 ${booking.ride_date ? formatDate(booking.ride_date) + ', ' : ''}${booking.ride_time}\n`;
+                message += `   🚗 Водитель: ${booking.driver_name}\n`;
+                message += `   💰 ${booking.ride_price} ₽\n`;
+                if (booking.driver_username) {
+                    message += `   📱 ${booking.driver_username}\n`;
+                }
+                message += '\n';
+            });
+            
+            message += 'Детали в приложении 👇';
+            
+            bot.sendMessage(chatId, message, {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: [[
+                        { text: '🚀 Открыть приложение', web_app: { url: process.env.APP_URL } }
+                    ]]
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Error getting user bookings:', error);
+        bot.sendMessage(chatId, '❌ Ошибка при загрузке бронирований. Попробуйте позже.');
+    }
+});
+
+// Вспомогательная функция форматирования даты
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    return `${day}.${month}`;
+}
 
 // Обработка ошибок бота
 bot.on('polling_error', (error) => {
