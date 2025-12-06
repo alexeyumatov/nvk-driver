@@ -69,7 +69,6 @@ function createRide(rideData) {
         car_info: rideData.car_info || null,
         car_number: rideData.car_number || null,
         telegram_username: rideData.telegram_username || null,
-        car_photo: rideData.car_photo || null,
         description: rideData.description || null,
         location_lat: rideData.location_lat || null,
         location_lon: rideData.location_lon || null,

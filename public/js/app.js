@@ -10,7 +10,6 @@ const API_URL = window.location.origin;
 let currentUser = null;
 let allRides = [];
 let userLocation = null;
-let carPhotoBase64 = null;
 let userBookings = [];
 
 // Функция форматирования даты
@@ -208,12 +207,6 @@ async function showRideDetails(rideId) {
             <p style="color: var(--text-secondary);">Отправление: ${ride.departure_date ? formatDate(ride.departure_date) + ', ' : ''}${ride.departure_time}</p>
         </div>
 
-        ${ride.car_photo ? `
-            <div style="margin-bottom: 15px;">
-                <img src="${ride.car_photo}" alt="Фото машины" style="max-width: 100%; border-radius: 8px; border: 2px solid var(--neon-blue);">
-            </div>
-        ` : ''}
-
         <div style="background: var(--bg-dark); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
             <p><strong>Водитель:</strong> ${ride.driver_name} ${ride.telegram_username ? `<a href="https://t.me/${ride.telegram_username.replace('@', '')}" target="_blank" style="color: var(--neon-cyan);">${ride.telegram_username}</a>` : ''}</p>
             <p><strong>Стоимость:</strong> ${ride.price} ₽</p>
@@ -324,8 +317,7 @@ async function createRide(event) {
         telegram_username: document.getElementById('telegram-username').value,
         description: document.getElementById('description').value,
         location_lat: userLocation?.latitude || null,
-        location_lon: userLocation?.longitude || null,
-        car_photo: carPhotoBase64
+        location_lon: userLocation?.longitude || null
     };
 
     try {
@@ -347,8 +339,6 @@ async function createRide(event) {
             
             // Очищаем форму
             document.getElementById('ride-form').reset();
-            carPhotoBase64 = null;
-            document.getElementById('photo-preview').innerHTML = '';
             
             // Сразу обновляем список поездок водителя
             await loadDriverRides();
@@ -555,58 +545,6 @@ async function cancelBooking(bookingId) {
         tg.showAlert('❌ Ошибка при отмене');
     }
 }
-
-// Обработка загрузки фото
-document.getElementById('car-photo')?.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) {
-        // Проверяем размер (макс 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            tg.showAlert('Файл слишком большой. Максимум 5MB');
-            e.target.value = '';
-            return;
-        }
-        
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const img = new Image();
-            img.onload = () => {
-                // Сжимаем изображение
-                const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 800;
-                const MAX_HEIGHT = 800;
-                let width = img.width;
-                let height = img.height;
-                
-                if (width > height) {
-                    if (width > MAX_WIDTH) {
-                        height *= MAX_WIDTH / width;
-                        width = MAX_WIDTH;
-                    }
-                } else {
-                    if (height > MAX_HEIGHT) {
-                        width *= MAX_HEIGHT / height;
-                        height = MAX_HEIGHT;
-                    }
-                }
-                
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-                
-                // Конвертируем в base64 с качеством 0.7
-                carPhotoBase64 = canvas.toDataURL('image/jpeg', 0.7);
-                
-                document.getElementById('photo-preview').innerHTML = `
-                    <img src="${carPhotoBase64}" alt="Preview" style="max-width: 200px; border-radius: 8px; border: 2px solid var(--neon-blue);">
-                `;
-            };
-            img.src = event.target.result;
-        };
-        reader.readAsDataURL(file);
-    }
-});
 
 // Получение геолокации
 document.getElementById('show-location')?.addEventListener('change', (e) => {
