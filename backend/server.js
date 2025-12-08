@@ -12,9 +12,8 @@ const PORT = process.env.PORT || 3000;
 // Инициализация Telegram бота
 // В production используем webhook, в development - polling
 const useWebhook = process.env.NODE_ENV === 'production' && process.env.APP_URL;
-const bot = new TelegramBot(process.env.BOT_TOKEN, { 
-    polling: !useWebhook 
-});
+const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: false });
+let pollingStarted = false;
 
 // Middleware
 app.use(cors());
@@ -31,6 +30,14 @@ setInterval(() => {
 
 // Запускаем первую очистку сразу
 db.cleanupExpiredRides();
+
+// Обработчик webhook для Telegram (используется только в production)
+if (useWebhook) {
+    app.post(`/bot${process.env.BOT_TOKEN}`, (req, res) => {
+        bot.processUpdate(req.body);
+        res.sendStatus(200);
+    });
+}
 
 // ============= API ENDPOINTS =============
 
@@ -184,7 +191,7 @@ app.post('/api/notify', async (req, res) => {
 🚗 Новая заявка на поездку!
 
 Пассажир: ${passenger_name} ${passenger_username ? `(@${passenger_username})` : ''}
-Маршрут: ${ride.route === 'nvk-guk' ? 'НВК → ГУК' : 'ГУК → НВК'}
+Маршрут: ${ride.route}
 Время: ${ride.departure_time}
 
 Вы также можете связаться с пассажиром для уточнения деталей.
@@ -414,33 +421,63 @@ bot.on('polling_error', (error) => {
     console.error('Bot polling error:', error);
 });
 
+async function startPollingMode() {
+    try {
+        await bot.deleteWebHook();
+        console.log('🧹 Webhook removed before polling start');
+    } catch (error) {
+        if (error.message && !error.message.includes('Webhook is not set')) {
+            console.warn('⚠️ Failed to remove webhook before polling:', error.message);
+        }
+    }
+
+    if (!pollingStarted) {
+        try {
+            await bot.startPolling();
+            pollingStarted = true;
+            console.log('📡 Bot running in polling mode');
+        } catch (pollError) {
+            console.error('❌ Failed to start polling:', pollError.message);
+            throw pollError;
+        }
+    }
+}
+
 // ============= SERVER START =============
 
 app.listen(PORT, async () => {
     // Настройка webhook для production
     if (useWebhook) {
         const webhookUrl = `${process.env.APP_URL}/bot${process.env.BOT_TOKEN}`;
-        
+
         try {
-            // Удаляем старый webhook
             await bot.deleteWebHook();
             console.log('🗑️ Old webhook deleted');
-            
-            // Устанавливаем новый webhook
+        } catch (error) {
+            if (error.message && !error.message.includes('Webhook is not set')) {
+                console.warn('⚠️ Failed to delete existing webhook:', error.message);
+            }
+        }
+
+        try {
             await bot.setWebHook(webhookUrl);
             console.log('✅ Webhook set to:', webhookUrl);
-            
-            // Обработчик webhook
-            app.post(`/bot${process.env.BOT_TOKEN}`, (req, res) => {
-                bot.processUpdate(req.body);
-                res.sendStatus(200);
-            });
+            console.log('📬 Bot running in webhook mode');
         } catch (error) {
             console.error('❌ Webhook setup failed:', error.message);
             console.log('⚠️ Falling back to polling mode');
+            try {
+                await startPollingMode();
+            } catch (pollError) {
+                console.error('❌ Cannot start bot in fallback polling mode:', pollError.message);
+            }
         }
     } else {
-        console.log('📡 Bot running in polling mode');
+        try {
+            await startPollingMode();
+        } catch (error) {
+            console.error('❌ Cannot start bot in polling mode:', error.message);
+        }
     }
     
     console.log(`
@@ -461,8 +498,16 @@ app.listen(PORT, async () => {
 // Graceful shutdown
 process.on('SIGINT', () => {
     console.log('\n\n👋 Shutting down server...');
-    if (!useWebhook) {
-        bot.stopPolling();
-    }
-    process.exit(0);
+
+    (async () => {
+        if (pollingStarted) {
+            try {
+                await bot.stopPolling();
+                console.log('🛑 Polling stopped');
+            } catch (error) {
+                console.error('❌ Error stopping polling:', error.message);
+            }
+        }
+        process.exit(0);
+    })();
 });

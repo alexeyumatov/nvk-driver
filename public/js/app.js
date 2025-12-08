@@ -447,7 +447,9 @@ async function showRideBookings(rideId) {
                 ${data.bookings.map(booking => `
                     <div style="background: var(--bg-dark); padding: 15px; border-radius: 8px; margin-bottom: 10px;">
                         <p><strong>Пассажир:</strong> ${booking.passenger_name}</p>
-                        <p><strong>Telegram:</strong> <a href="https://t.me/${booking.passenger_username}" target="_blank" style="color: var(--neon-cyan);">@${booking.passenger_username}</a></p>
+                        ${booking.passenger_username ? `
+                        <p><strong>Telegram:</strong> <a href="https://t.me/${booking.passenger_username.replace('@', '')}" target="_blank" style="color: var(--neon-cyan);">@${booking.passenger_username.replace('@', '')}</a></p>
+                        ` : '<p><strong>Telegram:</strong> не указан</p>'}
                         <p><strong>Время заявки:</strong> ${new Date(booking.created_at).toLocaleString('ru-RU')}</p>
                         <span class="booking-status ${booking.status}">${booking.status === 'confirmed' ? 'Подтверждено' : 'Ожидает'}</span>
                     </div>
