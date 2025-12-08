@@ -217,6 +217,18 @@ bot.setMyCommands([
     { command: 'about', description: 'ℹ️ О сервисе' }
 ]);
 
+if (process.env.APP_URL) {
+    bot.setChatMenuButton({
+        menu_button: {
+            type: 'web_app',
+            text: '🚗 Открыть NVK-Driver',
+            web_app: { url: process.env.APP_URL }
+        }
+    }).catch(error => {
+        console.warn('⚠️ Failed to set chat menu button:', error.message);
+    });
+}
+
 // Команда /start
 bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
@@ -231,16 +243,17 @@ bot.onText(/\/start/, (msg) => {
         '• Создать свою поездку\n' +
         '• Забронировать место у водителя\n' +
         '• Отслеживать свои поездки\n\n' +
-        '👇 Нажми кнопку ниже, чтобы начать:',
+        '👇 Выбирай действие:',
         {
             parse_mode: 'Markdown',
             reply_markup: {
-                keyboard: [
+                inline_keyboard: [
                     [{ text: '🚀 Открыть приложение', web_app: { url: webAppUrl } }],
-                    [{ text: '📖 Помощь' }, { text: 'ℹ️ О сервисе' }]
-                ],
-                resize_keyboard: true,
-                one_time_keyboard: false
+                    [
+                        { text: '📖 Помощь', callback_data: 'show_help' },
+                        { text: 'ℹ️ О сервисе', callback_data: 'show_about' }
+                    ]
+                ]
             }
         }
     );
@@ -251,11 +264,23 @@ bot.onText(/\/help/, (msg) => {
     sendHelpMessage(msg.chat.id);
 });
 
-bot.on('message', (msg) => {
-    if (msg.text === '📖 Помощь') {
-        sendHelpMessage(msg.chat.id);
-    } else if (msg.text === 'ℹ️ О сервисе') {
-        sendAboutMessage(msg.chat.id);
+bot.on('callback_query', async (query) => {
+    const data = query.data;
+    const chatId = query.message?.chat?.id;
+
+    if (!chatId) {
+        await bot.answerCallbackQuery(query.id);
+        return;
+    }
+
+    try {
+        if (data === 'show_help') {
+            await sendHelpMessage(chatId);
+        } else if (data === 'show_about') {
+            await sendAboutMessage(chatId);
+        }
+    } finally {
+        await bot.answerCallbackQuery(query.id);
     }
 });
 
