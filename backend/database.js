@@ -210,20 +210,23 @@ function cleanupExpiredRides() {
     let deletedCount = 0;
     
     db.rides.forEach(ride => {
-        if (!ride.is_active || !ride.departure_date || !ride.departure_time) return;
-        
-        // Создаем дату отправления + 20 минут
-        const [hours, minutes] = ride.departure_time.split(':');
-        const departureDateTime = new Date(ride.departure_date);
-        departureDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-        
-        // Добавляем 20 минут
+        if (!ride.is_active || !ride.departure_date || !ride.departure_time) {
+            return;
+        }
+
+        // Формируем дату/время в локальной временной зоне сервера
+        const departureDateTime = new Date(`${ride.departure_date}T${ride.departure_time}`);
+        if (Number.isNaN(departureDateTime.getTime())) {
+            console.warn(`⚠️ Cannot parse ride datetime: ${ride.departure_date} ${ride.departure_time}`);
+            return;
+        }
+
+        // Добавляем 20 минут к времени отправления
         const expirationTime = new Date(departureDateTime.getTime() + 20 * 60 * 1000);
-        
-        // Если прошло более 20 минут - удаляем
+
+        // Если время истекло - деактивируем поездку
         if (now > expirationTime) {
             ride.is_active = false;
-            // Удаляем все бронирования этой поездки
             db.bookings = db.bookings.filter(b => b.ride_id !== ride.id);
             deletedCount++;
         }
