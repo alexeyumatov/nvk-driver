@@ -202,6 +202,18 @@ function deleteBooking(bookingId) {
     return { changes: booking ? 1 : 0 };
 }
 
+// Все поездки (включая завершённые) для админ-панели
+function getAllRidesAdmin() {
+    loadDatabase();
+    return db.rides;
+}
+
+// Все бронирования для админ-панели
+function getAllBookingsAdmin() {
+    loadDatabase();
+    return db.bookings;
+}
+
 // Автоудаление устаревших поездок (через 20 минут после отправления)
 function cleanupExpiredRides() {
     loadDatabase();
@@ -252,5 +264,7 @@ module.exports = {
     getBookingsByRide,
     getBookingsByUser,
     deleteBooking,
+    getAllRidesAdmin,
+    getAllBookingsAdmin,
     cleanupExpiredRides
 };
