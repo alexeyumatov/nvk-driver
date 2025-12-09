@@ -245,7 +245,9 @@ app.get('/api/admin/bookings', requireAdminToken, (req, res) => {
 
 app.post('/api/admin/cleanup', requireAdminToken, (req, res) => {
     try {
+        console.log('🧹 Admin requested cleanup run');
         const deletedCount = db.cleanupExpiredRides();
+        console.log(`🧹 Cleanup finished, removed ${deletedCount} ride(s)`);
         res.json({ success: true, deletedCount });
     } catch (error) {
         console.error('Error running admin cleanup:', error);

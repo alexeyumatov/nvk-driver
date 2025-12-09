@@ -220,6 +220,7 @@ function cleanupExpiredRides() {
     
     const now = new Date();
     let deletedCount = 0;
+    let inspected = 0;
     
     db.rides.forEach(ride => {
         if (!ride.is_active || !ride.departure_date || !ride.departure_time) {
@@ -232,6 +233,9 @@ function cleanupExpiredRides() {
             console.warn(`⚠️ Cannot parse ride datetime: ${ride.departure_date} ${ride.departure_time}`);
             return;
         }
+
+        inspected++;
+        console.log(`🧭 Checking ride ${ride.id}: departs ${ride.departure_date} ${ride.departure_time}`);
 
         // Добавляем 20 минут к времени отправления
         const expirationTime = new Date(departureDateTime.getTime() + 20 * 60 * 1000);
@@ -247,6 +251,10 @@ function cleanupExpiredRides() {
     if (deletedCount > 0) {
         saveDatabase();
         console.log(`🧹 Cleaned up ${deletedCount} expired ride(s)`);
+    } else if (inspected === 0) {
+        console.log('ℹ️ Cleanup run completed: no rides with both date and time found');
+    } else {
+        console.log('ℹ️ Cleanup run completed: no rides exceeded expiration window');
     }
     
     return deletedCount;
