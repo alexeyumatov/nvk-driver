@@ -8,7 +8,6 @@ const db = require('./database');
 // Инициализация приложения
 const app = express();
 const PORT = process.env.PORT || 3000;
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN;
 
 // Инициализация Telegram бота
 // В production используем webhook, в development - polling
@@ -20,20 +19,6 @@ let pollingStarted = false;
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
-
-function requireAdminToken(req, res, next) {
-    if (!ADMIN_TOKEN) {
-        console.error('❌ ADMIN_TOKEN is not configured');
-        return res.status(500).json({ success: false, error: 'Admin access is not configured' });
-    }
-
-    const token = req.headers['x-admin-token'] || req.query.token;
-    if (!token || token !== ADMIN_TOKEN) {
-        return res.status(401).json({ success: false, error: 'Unauthorized' });
-    }
-
-    next();
-}
 
 // Инициализация базы данных
 db.initializeDatabase();
@@ -217,40 +202,6 @@ app.post('/api/notify', async (req, res) => {
         res.json({ success: true });
     } catch (error) {
         console.error('Error sending notification:', error);
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-// ============= ADMIN ENDPOINTS =============
-
-app.get('/api/admin/rides', requireAdminToken, (req, res) => {
-    try {
-        const rides = db.getAllRidesAdmin();
-        res.json({ success: true, rides });
-    } catch (error) {
-        console.error('Error getting admin rides:', error);
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-app.get('/api/admin/bookings', requireAdminToken, (req, res) => {
-    try {
-        const bookings = db.getAllBookingsAdmin();
-        res.json({ success: true, bookings });
-    } catch (error) {
-        console.error('Error getting admin bookings:', error);
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-app.post('/api/admin/cleanup', requireAdminToken, (req, res) => {
-    try {
-        console.log('🧹 Admin requested cleanup run');
-        const deletedCount = db.cleanupExpiredRides();
-        console.log(`🧹 Cleanup finished, removed ${deletedCount} ride(s)`);
-        res.json({ success: true, deletedCount });
-    } catch (error) {
-        console.error('Error running admin cleanup:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
