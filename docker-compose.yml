@@ -7,8 +7,8 @@ services:
       dockerfile: Dockerfile
     container_name: nvk-driver-app
     restart: unless-stopped
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     env_file:
       - .env
     environment:
@@ -31,10 +31,30 @@ services:
       retries: 3
       start_period: 5s
 
+  nginx:
+    image: nginx:alpine
+    container_name: nvk-driver-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+    networks:
+      - nvk-network
+    depends_on:
+      - nvk-driver
+
+  certbot:
+    image: certbot/certbot
+    container_name: nvk-driver-certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
 networks:
   nvk-network:
     driver: bridge
-
-volumes:
-  nvk-data:
-    driver: local
