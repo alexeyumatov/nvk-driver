@@ -27,7 +27,7 @@ sleep 5
 
 # 3. Запрос сертификата
 echo "3. Запрос сертификата у Let's Encrypt..."
-docker-compose run --rm certbot certonly --webroot --webroot-path /var/www/certbot -d $DOMAIN --email $EMAIL --agree-tos --no-eff-email
+docker-compose run --rm --entrypoint certbot certbot certonly --webroot --webroot-path /var/www/certbot -d $DOMAIN --email $EMAIL --agree-tos --no-eff-email
 
 if [ $? -ne 0 ]; then
     echo "ОШИБКА: Не удалось получить сертификат. Проверьте логи и настройки DNS."
