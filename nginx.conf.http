@@ -1,0 +1,28 @@
+events {
+    worker_connections 1024;
+}
+
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+
+    server {
+        listen 80;
+        server_name nvk-driver.ru;
+
+        # Самая важная часть для Certbot
+        location /.well-known/acme-challenge/ {
+            root /var/www/certbot;
+        }
+
+        # Временный прокси на приложение, пока нет SSL
+        location / {
+            proxy_pass http://nvk-driver:3000;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host $host;
+            proxy_cache_bypass $http_upgrade;
+        }
+    }
+}
