@@ -8,14 +8,14 @@ http {
 
     server {
         listen 80;
-        server_name nvk-driver.ru;
+        server_name nvk-driver www.nvk-driver;
 
-        # Самая важная часть для Certbot
-        location /.well-known/acme-challenge/ {
+        # Используем ^~ чтобы этот блок имел приоритет и не перекрывался регулярками
+        location ^~ /.well-known/acme-challenge/ {
+            default_type "text/plain";
             root /var/www/certbot;
         }
 
-        # Временный прокси на приложение, пока нет SSL
         location / {
             proxy_pass http://nvk-driver:3000;
             proxy_http_version 1.1;

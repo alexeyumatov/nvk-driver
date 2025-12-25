@@ -14,8 +14,13 @@ EMAIL=$2
 
 echo "--- Настройка SSL для домена: $DOMAIN ---"
 
+# Создаем директории и даем права
+mkdir -p certbot/www
+mkdir -p certbot/conf
+chmod -R 755 certbot
+
 # 1. Подготовка конфигурации для HTTP (чтобы пройти проверку Certbot)
-echo "1. Создание конфигурации Nginx для HTTP..."
+echo "1. Создание кон--force-recreate фигурации Nginx для HTTP..."
 sed "s/YOUR_DOMAIN/$DOMAIN/g" nginx.conf.http > nginx.conf
 
 # 2. Запуск Nginx
